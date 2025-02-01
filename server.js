@@ -22,13 +22,29 @@ app.get("/test", (req, res) => {
   res.status(200).json({ MSG: "Server is runnning :)" });
 });
 
+app.post("/calculate_metrics", (req, res) => {
+  /* The inputs is of the form:
+    {
+      conversation_id: {
+        query: "query string",
+      }
+    }
+   */
+  console.log(req.body);
+  res.status(200);
+});
+
 https.createServer(options, app).listen(443, () => {
   console.log("HTTPS Server running on https://localhost:443");
 });
 
-http.createServer((req, res) => {
-  res.writeHead(301, { "Location": "https://" + req.headers.host + req.url });
-  res.end();
-}).listen(80, () => {
-  console.log("HTTP Server running on http://localhost:80 (Redirects to HTTPS)");
-});
+http
+  .createServer((req, res) => {
+    res.writeHead(301, { Location: "https://" + req.headers.host + req.url });
+    res.end();
+  })
+  .listen(80, () => {
+    console.log(
+      "HTTP Server running on http://localhost:80 (Redirects to HTTPS)"
+    );
+  });
