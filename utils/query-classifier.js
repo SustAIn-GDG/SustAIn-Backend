@@ -10,7 +10,7 @@ delete env.localModelPath;
 delete env.allowRemoteModels;
 
 // Set correct model path structure
-const baseModelPath = path.join(__dirname, "models");
+const baseModelPath = path.join(__dirname, "../models");
 env.localModelPath = baseModelPath;
 env.allowRemoteModels = false;
 
