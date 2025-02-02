@@ -15,6 +15,27 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
+import { pipeline } from "@xenova/transformers"; // Install using npm i @xenova/transformers
+
+const classifier = await pipeline(
+  "zero-shot-classification",
+  "Xenova/distilbert-base-mnli"
+);
+
+async function classifyQuery(query) {
+  const labels = [
+    "text classification",
+    "generation",
+    "code generation",
+    "information retrieval",
+    "sentiment analysis",
+    "question answering",
+    "translation",
+    "summarization",
+  ];
+  const result = await classifier(query, labels);
+  return result.labels[0]; // Return the top category
+}
 
 // List of timezones in the Southern Hemisphere
 const southernTimeZones = new Set([
@@ -164,6 +185,26 @@ app.post("/calculate_metrics", async (req, res) => {
       const words = query.split(/\s+/).filter(Boolean).length;
       totalWords += words;
 
+      const category = await classifyQuery(query);
+      console.log("Category: ", category);
+
+      if (category.includes("positive") || category.includes("negative")) {
+        queryTypes.text_classification++;
+      } else if (
+        category.includes("generation") ||
+        category.includes("creative")
+      ) {
+        queryTypes.generation++;
+      } else if (
+        category.includes("code") ||
+        category.includes("programming")
+      ) {
+        queryTypes.code_generation++;
+      } else {
+        queryTypes.unknown++; // Default category
+      }
+    });
+
     // Store Processed Data
     processedData[conversationId] = {
       server_ip: conv.server_ip,
@@ -174,14 +215,14 @@ app.post("/calculate_metrics", async (req, res) => {
       datacenter_season: season,
       datacenter_partOfDay: partOfDay,
     };
-  })
+  }
 
   console.log(
     "######################################\nOUTPUT: ",
     JSON.stringify(processedData, null, 4)
   );
   res.status(200);
-}});
+});
 
 https.createServer(options, app).listen(443, () => {
   console.log("HTTPS Server running on https://localhost:443");
