@@ -7,6 +7,7 @@ import bodyParser from "body-parser";
 import fs from "fs";
 import axios from "axios";
 import { encoding_for_model } from "tiktoken";
+import classifyQuery from "./model.js";
 
 dotenv.config();
 
@@ -14,28 +15,6 @@ const app = express();
 
 app.use(bodyParser.json());
 app.use(cors());
-
-import { pipeline } from "@xenova/transformers"; // Install using npm i @xenova/transformers
-
-const classifier = await pipeline(
-  "zero-shot-classification",
-  "Xenova/distilbert-base-mnli"
-);
-
-async function classifyQuery(query) {
-  const labels = [
-    "text classification",
-    "generation",
-    "code generation",
-    "information retrieval",
-    "sentiment analysis",
-    "question answering",
-    "translation",
-    "summarization",
-  ];
-  const result = await classifier(query, labels);
-  return result.labels[0]; // Return the top category
-}
 
 // List of timezones in the Southern Hemisphere
 const southernTimeZones = new Set([
@@ -124,9 +103,7 @@ app.get("/test", (req, res) => {
   res.status(200).json({ MSG: "Server is runnning :)" });
 });
 
-app.post("/calculate_metrics", async (req, res) => {
-  console.log("Connection established!");
-  /*
+/*
   Conversation data structure in storageAPI.
   {
     "conv123": {
@@ -137,91 +114,78 @@ app.post("/calculate_metrics", async (req, res) => {
       ]
     }
   }
-
   */
+app.post("/calculate_metrics", async (req, res) => {
   const conversationData = req.body;
-
-  // Result Object
-  let processedData = {};
+  const processedData = {};
 
   for (const conversationId in conversationData) {
     const conv = conversationData[conversationId];
-
-    // Get Region of IP Address
-    let geo = await axios.get(`http://ip-api.com/json/${conv.server_ip}`);
-    geo = geo.data;
-    const region = geo ? geo.country + " - " + geo.city : "Unknown";
-
-    let timeData = await axios.get(
-      `https://timeapi.io/api/time/current/zone?timeZone=${geo.timezone}`
-    );
-    timeData = timeData.data;
-    let { month, day, hour } = timeData;
-    // Get season and part of day
-    let season = getSeason(month, day, geo.timezone);
-    let partOfDay = getPartOfDay(hour);
-
-    let totalTokens = 0;
-    let totalWords = 0;
-    let queryTypes = {
-      text_classification: 0,
-      generation: 0,
-      code_generation: 0,
-      unknown: 0,
+    const metrics = {
+      total_tokens: 0,
+      total_words: 0,
+      query_types: {
+        "text classification": 0,
+        generation: 0,
+        "code generation": 0,
+        "information retrieval": 0,
+        "sentiment analysis": 0,
+        "question answering": 0,
+        translation: 0,
+        summarization: 0,
+      },
     };
 
-    const encoder = encoding_for_model("gpt-4"); // Load tokenizer
-    console.log(conv.queries);
-    conv.queries.forEach(async ({ query }) => {
-      // Token Count
-      if (typeof query === "string") {
-        const tokens = encoder.encode(query);
-        totalTokens += tokens.length;
-      } else {
-        console.error("Invalid query:", query);
+    // Sequential processing with error handling
+    for (const { query } of conv.queries) {
+      try {
+        if (typeof query !== "string") continue;
+
+        const encoder = encoding_for_model("gpt-4");
+        metrics.total_tokens += encoder.encode(query).length;
+        metrics.total_words += query.split(/\s+/).filter(Boolean).length;
+
+        const category = await classifyQuery(query);
+        metrics.query_types[category]++;
+      } catch (error) {
+        console.error(`Error processing query ${query}:`, error);
       }
+    }
 
-      // Word Count
-      const words = query.split(/\s+/).filter(Boolean).length;
-      totalWords += words;
+    // Get location and time data
+    try {
+      const geoResponse = await axios.get(
+        `http://ip-api.com/json/${conv.server_ip}`
+      );
+      const region = `${geoResponse.data.country} - ${geoResponse.data.city}`;
+      const timeData = await axios.get(
+        `https://timeapi.io/api/time/current/zone?timeZone=${geoResponse.data.timezone}`
+      );
+      const { month, day, hour } = timeData.data;
 
-      const category = await classifyQuery(query);
-      console.log("Category: ", category);
-
-      if (category.includes("positive") || category.includes("negative")) {
-        queryTypes.text_classification++;
-      } else if (
-        category.includes("generation") ||
-        category.includes("creative")
-      ) {
-        queryTypes.generation++;
-      } else if (
-        category.includes("code") ||
-        category.includes("programming")
-      ) {
-        queryTypes.code_generation++;
-      } else {
-        queryTypes.unknown++; // Default category
-      }
-    });
-
-    // Store Processed Data
-    processedData[conversationId] = {
-      server_ip: conv.server_ip,
-      region: region,
-      total_tokens: totalTokens,
-      total_words: totalWords,
-      query_types: queryTypes,
-      datacenter_season: season,
-      datacenter_partOfDay: partOfDay,
-    };
+      processedData[conversationId] = {
+        ...metrics,
+        server_ip: conv.server_ip,
+        region,
+        datacenter_season: getSeason(month, day, geoResponse.data.timezone),
+        datacenter_partOfDay: getPartOfDay(hour),
+      };
+    } catch (error) {
+      console.error(
+        `Error getting location/time data for ${conv.server_ip}:`,
+        error
+      );
+      processedData[conversationId] = {
+        ...metrics,
+        server_ip: conv.server_ip,
+        region: "Unknown",
+        datacenter_season: "Unknown",
+        datacenter_partOfDay: "Unknown",
+      };
+    }
   }
-
-  console.log(
-    "######################################\nOUTPUT: ",
-    JSON.stringify(processedData, null, 4)
-  );
-  res.status(200);
+  console.log("Processed Query: ", processedData);
+  res.status(200).json(processedData);
 });
 
 https.createServer(options, app).listen(443, () => {
