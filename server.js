@@ -16,7 +16,9 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
+import initializeDatabase from "./database/initDB.js";
 
+initializeDatabase();
 
 const options = {
   key: fs.readFileSync("certificate/server.key"), // Use your key file
