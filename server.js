@@ -17,6 +17,8 @@ app.use(bodyParser.json());
 app.use(cors());
 
 import initializeDatabase from "./database/initDB.js";
+import simModel from "./utils/model-sim.js";
+import pool from "./database/db.js";
 
 initializeDatabase();
 
@@ -111,6 +113,22 @@ app.post("/calculate_metrics", async (req, res) => {
     }
   }
   console.log("Processed Query: ", processedData);
+  try {
+    for (const conversationId in processedData) {
+      const { EnergyConsumption, WaterConsumption, CarbonEmission } = simModel(
+        processedData[conversationId]
+      ); // this should be await and fetch the API of model hosted on cloud.
+      await pool.query(`INSERT INTO sustainmetrics VALUES(?,?,?,?)`, [
+        conversationId,
+        EnergyConsumption,
+        WaterConsumption,
+        CarbonEmission,
+      ]);
+    }
+    console.log("Data inserted into database successfully!");
+  } catch (err) {
+    console.log(err);
+  }
   res.status(200).json(processedData);
 });
 
