@@ -19,6 +19,7 @@ app.use(cors());
 import initializeDatabase from "./database/initDB.js";
 import simModel from "./utils/model-sim.js";
 import pool from "./database/db.js";
+import { predictCarbon } from "./utils/carbonPredictor.js";
 
 initializeDatabase();
 
@@ -30,6 +31,11 @@ const options = {
 app.get("/test", (req, res) => {
   res.status(200).json({ MSG: "Server is runnning :)" });
 });
+
+app.get("/carbon", async (req, res)=>{
+  const {lon, lat} = req.query;
+  const result = await predictCarbon(4, lon, lat);
+})
 
 /*
   Conversation data structure in storageAPI.
@@ -85,11 +91,13 @@ app.post("/calculate_metrics", async (req, res) => {
       const geoResponse = await axios.get(
         `http://ip-api.com/json/${conv.server_ip}`
       );
+      const {lat, lon} = geoResponse.data;
       const region = `${geoResponse.data.country} - ${geoResponse.data.city}`;
       const timeData = await axios.get(
         `https://timeapi.io/api/time/current/zone?timeZone=${geoResponse.data.timezone}`
       );
       const { month, day, hour } = timeData.data;
+      console.log(timeData.data,geoResponse.data)
 
       processedData[conversationId] = {
         ...metrics,
