@@ -21,6 +21,8 @@ import simModel from "./utils/model-sim.js";
 import pool from "./database/db.js";
 import { predictCarbon } from "./utils/carbonPredictor.js";
 
+
+// initialising data base
 initializeDatabase();
 
 const options = {
