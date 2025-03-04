@@ -21,7 +21,6 @@ import simModel from "./utils/model-sim.js";
 import pool from "./database/db.js";
 import { predictCarbon } from "./utils/carbonPredictor.js";
 
-
 // initialising data base
 initializeDatabase();
 
@@ -34,10 +33,10 @@ app.get("/test", (req, res) => {
   res.status(200).json({ MSG: "Server is runnning :)" });
 });
 
-app.get("/carbon", async (req, res)=>{
-  const {lon, lat} = req.query;
+app.get("/carbon", async (req, res) => {
+  const { lon, lat } = req.query;
   const result = await predictCarbon(4, lon, lat);
-})
+});
 
 /*
   Conversation data structure in storageAPI.
@@ -62,13 +61,12 @@ app.post("/calculate_metrics", async (req, res) => {
       total_words: 0,
       query_types: {
         "text classification": 0,
-        generation: 0,
+        "text generation": 0,
         "code generation": 0,
-        "information retrieval": 0,
-        "sentiment analysis": 0,
-        "question answering": 0,
-        translation: 0,
         summarization: 0,
+        "question answering": 0,
+        "image generation": 0,
+        "image classification": 0,
       },
     };
 
@@ -93,13 +91,13 @@ app.post("/calculate_metrics", async (req, res) => {
       const geoResponse = await axios.get(
         `http://ip-api.com/json/${conv.server_ip}`
       );
-      const {lat, lon} = geoResponse.data;
+      const { lat, lon } = geoResponse.data;
       const region = `${geoResponse.data.country} - ${geoResponse.data.city}`;
       const timeData = await axios.get(
         `https://timeapi.io/api/time/current/zone?timeZone=${geoResponse.data.timezone}`
       );
       const { month, day, hour } = timeData.data;
-      console.log(timeData.data,geoResponse.data)
+      console.log(timeData.data, geoResponse.data);
 
       processedData[conversationId] = {
         ...metrics,
