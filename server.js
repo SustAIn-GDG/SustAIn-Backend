@@ -16,16 +16,11 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-import initializeDatabase from "./database/initDB.js";
-import simModel from "./utils/model-sim.js";
-import pool from "./database/db.js";
 import { predictCarbon } from "./utils/carbonPredictor.js";
 import predictSustainabilityMetrics from "./utils/predictor.js";
 import { getGeoLocation } from "./utils/ip-to-geo.js";
 import { getTimeData } from "./geo-to-time.js";
 
-// initialising data base
-initializeDatabase();
 
 const options = {
   key: fs.readFileSync("certificate/server.key"), // Use your key file
@@ -34,11 +29,6 @@ const options = {
 
 app.get("/test", (req, res) => {
   res.status(200).json({ MSG: "Server is runnning :)" });
-});
-
-app.get("/carbon", async (req, res) => {
-  const { lon, lat } = req.query;
-  const result = await predictCarbon(4, lon, lat);
 });
 
 /*
@@ -137,18 +127,15 @@ app.post("/calculate_metrics", async (req, res) => {
     for (const conversationId in processedData) {
       const { EnergyConsumption, WaterConsumption, CarbonEmission } =
         await predictSustainabilityMetrics(processedData[conversationId]);
-      await pool.query(`INSERT INTO sustainmetrics VALUES(?,?,?,?)`, [
-        conversationId,
-        EnergyConsumption,
-        WaterConsumption,
-        CarbonEmission,
-      ]);
     }
-    console.log("Data inserted into database successfully!");
   } catch (err) {
     console.log(err);
   }
-  res.status(200).json(processedData);
+  res.status(200).json({
+    EnergyConsumption,
+    WaterConsumption,
+    CarbonEmission,
+  });
 });
 
 // https.createServer(options, app).listen(443, () => {
