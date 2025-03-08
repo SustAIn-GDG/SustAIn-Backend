@@ -21,6 +21,8 @@ import simModel from "./utils/model-sim.js";
 import pool from "./database/db.js";
 import { predictCarbon } from "./utils/carbonPredictor.js";
 import predictSustainabilityMetrics from "./utils/predictor.js";
+import { getGeoLocation } from "./utils/ip-to-geo.js";
+import { getTimeData } from "./geo-to-time.js";
 
 // initialising data base
 initializeDatabase();
@@ -92,22 +94,17 @@ app.post("/calculate_metrics", async (req, res) => {
 
     // Get location and time data
     try {
-      const geoResponse = await axios.get(
-        `http://ip-api.com/json/${conv.server_ip}`
-      );
-      const { lat, lon } = geoResponse.data;
-      const region = `${geoResponse.data.country} - ${geoResponse.data.city}`;
-      const timeData = await axios.get(
-        `https://timeapi.io/api/time/current/zone?timeZone=${geoResponse.data.timezone}`
-      );
-      const { month, day, hour } = timeData.data;
-      console.log(timeData.data, geoResponse.data);
+      const geoResponse = await getGeoLocation(conv.server_ip);
+      const { lat, lon } = geoResponse;
+      const region = `${geoResponse.country} - ${geoResponse.city}`;
+      const timeData = await getTimeData(geoResponse.timezone);
+      const { month, day, hour } = timeData;
 
       processedData[conversationId] = {
         ...metrics,
         server_ip: conv.server_ip,
         region,
-        datacenter_season: getSeason(month, day, geoResponse.data.timezone),
+        datacenter_season: getSeason(month, day, geoResponse.timezone),
         datacenter_partOfDay: getPartOfDay(hour),
         lat: lat,
         lon: lon,
