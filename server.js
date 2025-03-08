@@ -20,6 +20,7 @@ import initializeDatabase from "./database/initDB.js";
 import simModel from "./utils/model-sim.js";
 import pool from "./database/db.js";
 import { predictCarbon } from "./utils/carbonPredictor.js";
+import predictSustainabilityMetrics from "./utils/predictor.js";
 
 // initialising data base
 initializeDatabase();
@@ -70,6 +71,9 @@ app.post("/calculate_metrics", async (req, res) => {
       },
     };
 
+    const modelName =
+      conv.queries.length > 0 ? conv.queries[0].model : "Unknown";
+
     // Sequential processing with error handling
     for (const { query } of conv.queries) {
       try {
@@ -105,6 +109,14 @@ app.post("/calculate_metrics", async (req, res) => {
         region,
         datacenter_season: getSeason(month, day, geoResponse.data.timezone),
         datacenter_partOfDay: getPartOfDay(hour),
+        lat: lat,
+        lon: lon,
+        model:
+          modelName == "auto"
+            ? "GPT-4"
+            : modelName.startsWith("Gemini")
+            ? "Gemini"
+            : modelName,
       };
     } catch (error) {
       console.error(
@@ -117,15 +129,17 @@ app.post("/calculate_metrics", async (req, res) => {
         region: "Unknown",
         datacenter_season: "Unknown",
         datacenter_partOfDay: "Unknown",
+        lat: "Unknown",
+        lon: "Unknown",
+        model: modelName,
       };
     }
   }
   console.log("Processed Query: ", processedData);
   try {
     for (const conversationId in processedData) {
-      const { EnergyConsumption, WaterConsumption, CarbonEmission } = simModel(
-        processedData[conversationId]
-      ); // this should be await and fetch the API of model hosted on cloud.
+      const { EnergyConsumption, WaterConsumption, CarbonEmission } =
+        await predictSustainabilityMetrics(processedData[conversationId]);
       await pool.query(`INSERT INTO sustainmetrics VALUES(?,?,?,?)`, [
         conversationId,
         EnergyConsumption,
