@@ -110,7 +110,7 @@ app.post("/calculate_metrics", async (req, res) => {
     };
     try {
       const modelName =
-        conv.queries.length > 0 ? conv.queries[0].model : "Unknown";
+        conv.queries.length > 0 ? conv.queries[0].model : "GPT";
 
       const queries = conv.queries.map(({ query }) => query).filter(Boolean);
 
@@ -130,7 +130,7 @@ app.post("/calculate_metrics", async (req, res) => {
 
       // Process query categories
       queries.forEach((query, index) => {
-        const category = categories[index] || "unknown";
+        const category = categories[index] || "text generation";
         metrics.query_types[category] =
           (metrics.query_types[category] || 0) + 1;
       });
