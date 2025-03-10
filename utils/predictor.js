@@ -21,7 +21,6 @@ export default async function predictSustainabilityMetrics(data) {
   }
 
   const gridEmissionFactor = await predictCarbon(
-    totalEnergyUsed,
     data.lon,
     data.lat
   );
@@ -33,8 +32,8 @@ export default async function predictSustainabilityMetrics(data) {
   const actualEnergyUsage = totalEnergyUsed * PUE;
   const carbonEmission =
     gridEmissionFactor == null
-      ? actualEnergyUsage * 450
-      : actualEnergyUsage * gridEmissionFactor.carbonIntensity;
+      ? (actualEnergyUsage * 450) / 1000
+      : (actualEnergyUsage * gridEmissionFactor) / 1000;
   const waterConsumption = actualEnergyUsage * WATER_USE_PER_KWH;
   console.log(
     "Final answer:",

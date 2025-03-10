@@ -39,8 +39,10 @@ async function getAccessToken() {
   const envFile = ".env";
   const keyValue = `GCP_ACCESS_TOKEN=${accessToken.token}\n`;
 
-  let envContent = fs.existsSync(envFile) ? fs.readFileSync(envFile, "utf8") : "";
-  
+  let envContent = fs.existsSync(envFile)
+    ? fs.readFileSync(envFile, "utf8")
+    : "";
+
   if (envContent.includes("GCP_ACCESS_TOKEN=")) {
     envContent = envContent.replace(/GCP_ACCESS_TOKEN=.*/g, keyValue.trim());
     fs.writeFileSync(envFile, envContent);
@@ -80,12 +82,21 @@ app.post("/calculate_metrics", async (req, res) => {
   ) {
     res.status(400).json("No data was sent");
   }
-  console.log("CONV", conversationData)
+  console.log("CONV", conversationData);
   const processedData = {};
   var EnergyConsumption, WaterConsumption, CarbonEmission;
 
   for (const conversationId in conversationData) {
     const conv = conversationData[conversationId];
+    if (
+      conv.server_ip == null ||
+      conv.server_ip == "" ||
+      conv.server_ip == undefined
+    ) {
+      return res
+        .status(400)
+        .json("IP address of datacenter not found..Retry again.");
+    }
     const metrics = {
       query_types: {
         "text classification": 0,
