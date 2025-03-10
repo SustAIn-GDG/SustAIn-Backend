@@ -1,41 +1,41 @@
-import { pipeline, env } from "@xenova/transformers";
-import path from "path";
-import { fileURLToPath } from "url";
+import axios from "axios";
+import dotenv from "dotenv";
+dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const VERTEX_AI_ENDPOINT = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.PROJECT_ID}/locations/us-central1/endpoints/${process.env.ENDPOINT_ID}:predict`;
 
-// Delete existing environment settings
-delete env.localModelPath;
-delete env.allowRemoteModels;
+async function classifyQueryBatch(queries) {
+  if (queries.length === 0) return [];
 
-// Set correct model path structure
-const baseModelPath = path.join(__dirname, "../models");
-env.localModelPath = baseModelPath;
-env.allowRemoteModels = false;
+  const requestData = {
+    instances: queries.map((query) => ({ Query: query })),
+  };
 
-const classifier = await pipeline(
-  "zero-shot-classification",
-  "Xenova/distilbert-base-uncased-mnli"
-);
-const labels = [
-  "text classification",
-  "generation",
-  "code generation",
-  "information retrieval",
-  "sentiment analysis",
-  "question answering",
-  "translation",
-  "summarization",
-];
-
-const classifyQuery = async (query) => {
   try {
-    const result = await classifier(query, labels);
-    return result.labels[0];
-  } catch (error) {
-    console.error("Error:", error);
-  }
-};
+    const response = await axios.post(VERTEX_AI_ENDPOINT, requestData, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.GCP_ACCESS_TOKEN}`,
+      },
+    });
 
-export default classifyQuery;
+    // Extract the highest scoring class for each query
+    const predictions = response.data.predictions.map((prediction) => {
+      const { classes, scores } = prediction;
+      if (!classes || !scores || classes.length === 0 || scores.length === 0) {
+        return "unknown"; // Default if no valid data
+      }
+
+      // Find index of max score
+      const maxIndex = scores.indexOf(Math.max(...scores));
+      return classes[maxIndex] || "unknown";
+    });
+
+    return predictions;
+  } catch (error) {
+    console.error("Error calling Vertex AI:", error);
+    return queries.map(() => "unknown"); // Default category for failed requests
+  }
+}
+
+export default classifyQueryBatch;

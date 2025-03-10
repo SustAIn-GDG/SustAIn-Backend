@@ -5,10 +5,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import fs from "fs";
-import axios from "axios";
-import { encoding_for_model } from "tiktoken";
-import classifyQuery from "./utils/query-classifier.js";
+import classifyQueryBatch from "./utils/query-classifier.js";
 import { getPartOfDay, getSeason } from "./utils/datacenter-details.js";
+import { GoogleAuth } from "google-auth-library";
+import predictSustainabilityMetrics from "./utils/predictor.js";
+import { getGeoLocation } from "./utils/ip-to-geo.js";
+import { getTimeData } from "./geo-to-time.js";
 dotenv.config();
 
 const app = express();
@@ -16,16 +18,42 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-import { predictCarbon } from "./utils/carbonPredictor.js";
-import predictSustainabilityMetrics from "./utils/predictor.js";
-import { getGeoLocation } from "./utils/ip-to-geo.js";
-import { getTimeData } from "./geo-to-time.js";
-
-
 const options = {
   key: fs.readFileSync("certificate/server.key"), // Use your key file
   cert: fs.readFileSync("certificate/server.cert"), // Use your cert file
 };
+
+async function getAccessToken() {
+  let accessToken;
+  try {
+    const auth = new GoogleAuth({
+      keyFilename: "./certificate/GCP_Key.json",
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    });
+
+    const client = await auth.getClient();
+    accessToken = await client.getAccessToken();
+  } catch (err) {
+    console.log("Error fetching GCP key: ", err);
+  }
+  const envFile = ".env";
+  const keyValue = `GCP_ACCESS_TOKEN=${accessToken.token}\n`;
+
+  let envContent = fs.existsSync(envFile) ? fs.readFileSync(envFile, "utf8") : "";
+  
+  if (envContent.includes("GCP_ACCESS_TOKEN=")) {
+    envContent = envContent.replace(/GCP_ACCESS_TOKEN=.*/g, keyValue.trim());
+    fs.writeFileSync(envFile, envContent);
+  } else {
+    fs.appendFileSync(envFile, keyValue);
+  }
+
+  console.log("Token saved to .env");
+  dotenv.config();
+}
+
+// storing the gcp access token to .env file
+getAccessToken();
 
 app.get("/test", (req, res) => {
   res.status(200).json({ MSG: "Server is runnning :)" });
@@ -45,13 +73,20 @@ app.get("/test", (req, res) => {
   */
 app.post("/calculate_metrics", async (req, res) => {
   const conversationData = req.body;
+  if (
+    conversationData == "" ||
+    conversationData == null ||
+    conversationData == {}
+  ) {
+    res.status(400).json("No data was sent");
+  }
+  console.log("CONV", conversationData)
   const processedData = {};
+  var EnergyConsumption, WaterConsumption, CarbonEmission;
 
   for (const conversationId in conversationData) {
     const conv = conversationData[conversationId];
     const metrics = {
-      total_tokens: 0,
-      total_words: 0,
       query_types: {
         "text classification": 0,
         "text generation": 0,
@@ -62,33 +97,32 @@ app.post("/calculate_metrics", async (req, res) => {
         "image classification": 0,
       },
     };
-
-    const modelName =
-      conv.queries.length > 0 ? conv.queries[0].model : "Unknown";
-
-    // Sequential processing with error handling
-    for (const { query } of conv.queries) {
-      try {
-        if (typeof query !== "string") continue;
-
-        const encoder = encoding_for_model("gpt-4");
-        metrics.total_tokens += encoder.encode(query).length;
-        metrics.total_words += query.split(/\s+/).filter(Boolean).length;
-
-        const category = await classifyQuery(query);
-        metrics.query_types[category]++;
-      } catch (error) {
-        console.error(`Error processing query ${query}:`, error);
-      }
-    }
-
-    // Get location and time data
     try {
-      const geoResponse = await getGeoLocation(conv.server_ip);
-      const { lat, lon } = geoResponse;
-      const region = `${geoResponse.country} - ${geoResponse.city}`;
-      const timeData = await getTimeData(geoResponse.timezone);
+      const modelName =
+        conv.queries.length > 0 ? conv.queries[0].model : "Unknown";
+
+      const queries = conv.queries.map(({ query }) => query).filter(Boolean);
+
+      // Run classifyQueryBatch and getGeoLocation in parallel
+      const [categories, geoResponse] = await Promise.all([
+        classifyQueryBatch(queries),
+        getGeoLocation(conv.server_ip),
+      ]);
+
+      // Extract latitude, longitude, and region
+      const { lat, lon, timezone, country, city } = geoResponse;
+      const region = `${country} - ${city}`;
+
+      // Now fetch time data (dependent on geoResponse)
+      const timeData = await getTimeData(timezone);
       const { month, day, hour } = timeData;
+
+      // Process query categories
+      queries.forEach((query, index) => {
+        const category = categories[index] || "unknown";
+        metrics.query_types[category] =
+          (metrics.query_types[category] || 0) + 1;
+      });
 
       processedData[conversationId] = {
         ...metrics,
@@ -105,11 +139,16 @@ app.post("/calculate_metrics", async (req, res) => {
             ? "Gemini"
             : modelName,
       };
+
+      console.log("Processed Query: ", processedData);
+
+      // Predicting the energy, carbon and water usage
+      for (const conversationId in processedData) {
+        ({ EnergyConsumption, WaterConsumption, CarbonEmission } =
+          await predictSustainabilityMetrics(processedData[conversationId]));
+      }
     } catch (error) {
-      console.error(
-        `Error getting location/time data for ${conv.server_ip}:`,
-        error
-      );
+      console.error(`Error Occured!\n`, error);
       processedData[conversationId] = {
         ...metrics,
         server_ip: conv.server_ip,
@@ -121,15 +160,6 @@ app.post("/calculate_metrics", async (req, res) => {
         model: modelName,
       };
     }
-  }
-  console.log("Processed Query: ", processedData);
-  try {
-    for (const conversationId in processedData) {
-      const { EnergyConsumption, WaterConsumption, CarbonEmission } =
-        await predictSustainabilityMetrics(processedData[conversationId]);
-    }
-  } catch (err) {
-    console.log(err);
   }
   res.status(200).json({
     EnergyConsumption,

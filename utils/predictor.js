@@ -18,7 +18,6 @@ export default async function predictSustainabilityMetrics(data) {
     if (!isNaN(energyPerQuery) && energyPerQuery !== 0) {
       totalEnergyUsed += count * energyPerQuery;
     }
-    console.log(queryType, count, "\n");
   }
 
   const gridEmissionFactor = await predictCarbon(

@@ -23,7 +23,6 @@ const predictCarbon = async (energy, longitude, latitude) => {
         "auth-token": process.env.ENERGY_API_KEY,
       },
     });
-    console.log(response.data);
 
     localMemory[cacheKey] = {
       carbonIntensity: response.data.carbonIntensity,
