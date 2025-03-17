@@ -18,16 +18,23 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-const options = {
-  key: fs.readFileSync("certificate/server.key"), // Use your key file
-  cert: fs.readFileSync("certificate/server.cert"), // Use your cert file
-};
+// const options = {
+//   key: fs.readFileSync("certificate/server.key"), // Use your key file
+//   cert: fs.readFileSync("certificate/server.cert"), // Use your cert file
+// };
 
 async function getAccessToken() {
+  const credentials = process.env.GOOGLE_CLOUD_CREDENTIALS;
+  if (credentials == "" || credentials == null) {
+    console.error("ENV variable not found");
+    return;
+  }
+  const filePath = "/tmp/GCP_key.json";
+  fs.writeFileSync(filePath, credentials);
   let accessToken;
   try {
     const auth = new GoogleAuth({
-      keyFilename: "./certificate/GCP_Key.json",
+      keyFilename: filePath,
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     });
 
@@ -109,8 +116,7 @@ app.post("/calculate_metrics", async (req, res) => {
       },
     };
     try {
-      const modelName =
-        conv.queries.length > 0 ? conv.queries[0].model : "GPT";
+      const modelName = conv.queries.length > 0 ? conv.queries[0].model : "GPT";
 
       const queries = conv.queries.map(({ query }) => query).filter(Boolean);
 
