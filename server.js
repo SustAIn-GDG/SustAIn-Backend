@@ -16,7 +16,20 @@ dotenv.config();
 const app = express();
 
 app.use(bodyParser.json());
-app.use(cors());
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || origin.startsWith("chrome-extension://")) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
 
 // const options = {
 //   key: fs.readFileSync("certificate/server.key"), // Use your key file
