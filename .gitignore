@@ -4,3 +4,4 @@
 .env.local
 /certificate
 /models
+.vercel

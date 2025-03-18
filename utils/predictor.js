@@ -24,8 +24,6 @@ export default async function predictSustainabilityMetrics(data) {
     data.lon,
     data.lat
   );
-  console.log("TOTAL ENERGY: ", totalEnergyUsed);
-  console.log("Grid emission factor:", gridEmissionFactor);
 
   const PUE = getPUE(data.datacenter_season, data.datacenter_partOfDay, false);
 

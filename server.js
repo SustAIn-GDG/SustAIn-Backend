@@ -16,18 +16,42 @@ dotenv.config();
 const app = express();
 
 app.use(bodyParser.json());
-app.use(cors());
 
-const options = {
-  key: fs.readFileSync("certificate/server.key"), // Use your key file
-  cert: fs.readFileSync("certificate/server.cert"), // Use your cert file
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || origin.startsWith("chrome-extension://")) {
+      console.log("CORS allowed!", origin);
+      callback(null, origin);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true,
+  optionsSuccessStatus: 200,
 };
 
+app.options("*", cors(corsOptions));
+app.use(cors(corsOptions));
+
+
+// const options = {
+//   key: fs.readFileSync("certificate/server.key"), // Use your key file
+//   cert: fs.readFileSync("certificate/server.cert"), // Use your cert file
+// };
+
 async function getAccessToken() {
+  const credentials = process.env.GOOGLE_CLOUD_CREDENTIALS;
+  if (!credentials) {
+    console.error("ENV variable not found");
+    return;
+  }
+
   let accessToken;
   try {
     const auth = new GoogleAuth({
-      keyFilename: "./certificate/GCP_Key.json",
+      credentials: JSON.parse(credentials),
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     });
 
@@ -36,22 +60,8 @@ async function getAccessToken() {
   } catch (err) {
     console.log("Error fetching GCP key: ", err);
   }
-  const envFile = ".env";
-  const keyValue = `GCP_ACCESS_TOKEN=${accessToken.token}\n`;
 
-  let envContent = fs.existsSync(envFile)
-    ? fs.readFileSync(envFile, "utf8")
-    : "";
-
-  if (envContent.includes("GCP_ACCESS_TOKEN=")) {
-    envContent = envContent.replace(/GCP_ACCESS_TOKEN=.*/g, keyValue.trim());
-    fs.writeFileSync(envFile, envContent);
-  } else {
-    fs.appendFileSync(envFile, keyValue);
-  }
-
-  console.log("Token saved to .env");
-  dotenv.config();
+  return accessToken?.token;
 }
 
 // storing the gcp access token to .env file
@@ -82,7 +92,6 @@ app.post("/calculate_metrics", async (req, res) => {
   ) {
     res.status(400).json("No data was sent");
   }
-  console.log("CONV", conversationData);
   const processedData = {};
   var EnergyConsumption, WaterConsumption, CarbonEmission;
 
@@ -109,8 +118,7 @@ app.post("/calculate_metrics", async (req, res) => {
       },
     };
     try {
-      const modelName =
-        conv.queries.length > 0 ? conv.queries[0].model : "GPT";
+      const modelName = conv.queries.length > 0 ? conv.queries[0].model : "GPT";
 
       const queries = conv.queries.map(({ query }) => query).filter(Boolean);
 
