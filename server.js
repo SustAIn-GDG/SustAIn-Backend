@@ -18,7 +18,14 @@ const app = express();
 app.use(bodyParser.json());
 
 const corsOptions = {
-  origin: "*",
+  origin: function (origin, callback) {
+    if (!origin || origin.startsWith("chrome-extension://")) {
+      console.log("CORS allowed!", origin);
+      callback(null, origin);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   allowedHeaders: ["Content-Type", "Authorization"],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
@@ -27,15 +34,6 @@ const corsOptions = {
 
 app.options("*", cors(corsOptions));
 app.use(cors(corsOptions));
-
-// app.use((req, res, next) => {
-//   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-//   res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
-//   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-//   res.header("Access-Control-Allow-Credentials", "true");
-//   next();
-// });
-
 
 
 // const options = {
@@ -94,7 +92,6 @@ app.post("/calculate_metrics", async (req, res) => {
   ) {
     res.status(400).json("No data was sent");
   }
-  console.log("CONV", conversationData);
   const processedData = {};
   var EnergyConsumption, WaterConsumption, CarbonEmission;
 
