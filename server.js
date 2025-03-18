@@ -60,8 +60,22 @@ async function getAccessToken() {
   } catch (err) {
     console.log("Error fetching GCP key: ", err);
   }
+  const envFile = ".env";
+  const keyValue = `GCP_ACCESS_TOKEN=${accessToken.token}\n`;
 
-  return accessToken?.token;
+  let envContent = fs.existsSync(envFile)
+    ? fs.readFileSync(envFile, "utf8")
+    : "";
+
+  if (envContent.includes("GCP_ACCESS_TOKEN=")) {
+    envContent = envContent.replace(/GCP_ACCESS_TOKEN=.*/g, keyValue.trim());
+    fs.writeFileSync(envFile, envContent);
+  } else {
+    fs.appendFileSync(envFile, keyValue);
+  }
+
+  console.log("Token saved to .env");
+  dotenv.config();
 }
 
 // storing the gcp access token to .env file
