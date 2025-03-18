@@ -21,16 +21,20 @@ const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || origin.startsWith("chrome-extension://")) {
       console.log("CORS allowed!", origin);
-      callback(null, true);
+      callback(null, origin);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
   },
+  allowedHeaders: ["Content-Type", "Authorization"],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
   optionsSuccessStatus: 200,
 };
+
+app.options("*", cors(corsOptions));
 app.use(cors(corsOptions));
+
 
 // const options = {
 //   key: fs.readFileSync("certificate/server.key"), // Use your key file
