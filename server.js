@@ -19,8 +19,8 @@ app.use(bodyParser.json());
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (origin && origin.startsWith("chrome-extension://")) {
-      console.log("CORS allowed!");
+    if (!origin || origin.startsWith("chrome-extension://")) {
+      console.log("CORS allowed!", origin);
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
