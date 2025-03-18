@@ -18,14 +18,7 @@ const app = express();
 app.use(bodyParser.json());
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || origin.startsWith("chrome-extension://")) {
-      console.log("CORS allowed!", origin);
-      callback(null, origin);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: "*",
   allowedHeaders: ["Content-Type", "Authorization"],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
@@ -35,13 +28,13 @@ const corsOptions = {
 app.options("*", cors(corsOptions));
 app.use(cors(corsOptions));
 
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  next();
-});
+// app.use((req, res, next) => {
+//   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+//   res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
+//   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+//   res.header("Access-Control-Allow-Credentials", "true");
+//   next();
+// });
 
 
 
@@ -60,13 +53,12 @@ async function getAccessToken() {
   let accessToken;
   try {
     const auth = new GoogleAuth({
-      credentials: JSON.parse(credentials), // <-- Pass JSON directly
+      credentials: JSON.parse(credentials),
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     });
 
     const client = await auth.getClient();
     accessToken = await client.getAccessToken();
-    console.log("GCP Access Token:", accessToken.token);
   } catch (err) {
     console.log("Error fetching GCP key: ", err);
   }
