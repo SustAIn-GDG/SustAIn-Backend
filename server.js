@@ -10,7 +10,7 @@ import { getPartOfDay, getSeason } from "./utils/datacenter-details.js";
 import { GoogleAuth } from "google-auth-library";
 import predictSustainabilityMetrics from "./utils/predictor.js";
 import { getGeoLocation } from "./utils/ip-to-geo.js";
-import { getTimeData } from "./geo-to-time.js";
+import { getTimeData } from "./utils/geo-to-time.js";
 dotenv.config();
 
 const app = express();
