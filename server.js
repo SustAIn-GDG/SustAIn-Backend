@@ -19,7 +19,8 @@ app.use(bodyParser.json());
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || origin.startsWith("chrome-extension://")) {
+    if (origin && origin.startsWith("chrome-extension://")) {
+      console.log("CORS allowed!");
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
@@ -27,7 +28,7 @@ const corsOptions = {
   },
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
-  optionsSuccessStatus: 204,
+  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 
