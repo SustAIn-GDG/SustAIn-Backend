@@ -42,16 +42,10 @@ app.use(cors(corsOptions));
 // };
 
 async function getAccessToken() {
-  const credentials = process.env.GOOGLE_CLOUD_CREDENTIALS;
-  if (!credentials) {
-    console.error("ENV variable not found");
-    return;
-  }
-
   let accessToken;
   try {
     const auth = new GoogleAuth({
-      credentials: JSON.parse(credentials),
+      keyFilename: "./etc/secrets/GCP_Key.json",
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     });
 
