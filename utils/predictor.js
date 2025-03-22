@@ -1,7 +1,7 @@
 import { predictCarbon } from "./carbonPredictor.js";
 import { AI_MODEL_ENERGY_FACTORS } from "../data/ai_models_energy.js";
 
-const WATER_USE_PER_KWH = 1.8;
+const WATER_USE_PER_WH = 0.0018;
 
 function getPUE(season, partOfDay) {
   if (season === "Summer") {
@@ -32,7 +32,7 @@ export default async function predictSustainabilityMetrics(data) {
     gridEmissionFactor == null
       ? (actualEnergyUsage * 450) / 1000
       : (actualEnergyUsage * gridEmissionFactor) / 1000;
-  const waterConsumption = actualEnergyUsage * WATER_USE_PER_KWH;
+  const waterConsumption = actualEnergyUsage * WATER_USE_PER_WH;
   console.log(
     "Final answer:",
     actualEnergyUsage,
