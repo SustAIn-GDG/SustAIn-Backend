@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getValidAccessToken } from "../server.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -7,6 +8,7 @@ const VERTEX_AI_ENDPOINT = `https://us-central1-aiplatform.googleapis.com/v1/pro
 async function classifyQueryBatch(queries) {
   if (queries.length === 0) return [];
 
+  const accessToken = await getValidAccessToken();
   const requestData = {
     instances: queries.map((query) => ({ Query: query })),
   };
@@ -15,7 +17,7 @@ async function classifyQueryBatch(queries) {
     const response = await axios.post(VERTEX_AI_ENDPOINT, requestData, {
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GCP_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 

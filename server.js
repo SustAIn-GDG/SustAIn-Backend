@@ -41,39 +41,27 @@ app.use(cors(corsOptions));
 //   cert: fs.readFileSync("certificate/server.cert"), // Use your cert file
 // };
 
-async function getAccessToken() {
-  let accessToken;
-  try {
-    const auth = new GoogleAuth({
-      keyFilename: "/etc/secrets/GCP_Key.json",
-      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-    });
+const auth = new GoogleAuth({
+  keyFilename: "/etc/secrets/GCP_Key.json",
+  scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+});
 
-    const client = await auth.getClient();
-    accessToken = await client.getAccessToken();
-  } catch (err) {
-    console.log("Error fetching GCP key: ", err);
-  }
-  const envFile = ".env";
-  const keyValue = `GCP_ACCESS_TOKEN=${accessToken.token}\n`;
+let cachedToken = null;
+let tokenExpiry = 0;
 
-  let envContent = fs.existsSync(envFile)
-    ? fs.readFileSync(envFile, "utf8")
-    : "";
-
-  if (envContent.includes("GCP_ACCESS_TOKEN=")) {
-    envContent = envContent.replace(/GCP_ACCESS_TOKEN=.*/g, keyValue.trim());
-    fs.writeFileSync(envFile, envContent);
-  } else {
-    fs.appendFileSync(envFile, keyValue);
+export async function getValidAccessToken() {
+  const now = Date.now();
+  if (cachedToken && now < tokenExpiry - 60000) { // Refresh 1 min early
+    return cachedToken;
   }
 
-  console.log("Token saved to .env");
-  dotenv.config();
+  const client = await auth.getClient();
+  const { token, res } = await client.getAccessToken();
+
+  cachedToken = token;
+  tokenExpiry = now + 1800 * 1000; // Tokens usually valid for 1 hour (But keeping it 30mins)
+  return cachedToken;
 }
-
-// storing the gcp access token to .env file
-getAccessToken();
 
 app.get("/test", (req, res) => {
   res.status(200).json({ MSG: "Server is runnning :)" });
