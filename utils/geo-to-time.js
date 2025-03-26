@@ -32,8 +32,6 @@ const getTimeData = async (timeZone, retryCount = 3, retryDelay = 1000) => {
       }
 
       const response = await axios.get(TIME_API_ENDPOINT, config);
-      console.log(`Successfully fetched time data for: ${cacheKey}`);
-
       // Cache successful response
       timeZoneCache[cacheKey] = {
         data: response.data,

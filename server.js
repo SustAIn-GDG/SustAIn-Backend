@@ -20,7 +20,6 @@ app.use(bodyParser.json());
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || origin.startsWith("chrome-extension://")) {
-      console.log("CORS allowed!", origin);
       callback(null, origin);
     } else {
       callback(new Error("Not allowed by CORS"));
@@ -34,7 +33,6 @@ const corsOptions = {
 
 app.options("*", cors(corsOptions));
 app.use(cors(corsOptions));
-
 
 // const options = {
 //   key: fs.readFileSync("certificate/server.key"), // Use your key file
@@ -51,7 +49,8 @@ let tokenExpiry = 0;
 
 export async function getValidAccessToken() {
   const now = Date.now();
-  if (cachedToken && now < tokenExpiry - 60000) { // Refresh 1 min early
+  if (cachedToken && now < tokenExpiry - 60000) {
+    // Refresh 1 min early
     return cachedToken;
   }
 
@@ -86,6 +85,7 @@ app.post("/calculate_metrics", async (req, res) => {
     conversationData == null ||
     conversationData == {}
   ) {
+    console.error("Request has no conversation body");
     res.status(400).json("No data was sent");
   }
   const processedData = {};
@@ -98,6 +98,7 @@ app.post("/calculate_metrics", async (req, res) => {
       conv.server_ip == "" ||
       conv.server_ip == undefined
     ) {
+      console.error("Request body has no ip address");
       return res
         .status(400)
         .json("IP address of datacenter not found..Retry again.");

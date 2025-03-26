@@ -61,10 +61,6 @@ const predictCarbon = async (
 
       // Verify that the response contains the expected data
       if (response.data && response.data.carbonIntensity !== undefined) {
-        console.log(
-          `Successfully fetched carbon intensity data for: ${cacheKey}`
-        );
-
         // Cache successful response with metadata
         localMemory[cacheKey] = {
           carbonIntensity: response.data.carbonIntensity,

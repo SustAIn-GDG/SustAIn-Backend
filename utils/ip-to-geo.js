@@ -47,8 +47,6 @@ const getGeoLocation = async (
 
       // Verify API response has expected data
       if (response.data && response.data.status === "success") {
-        console.log(`Successfully fetched geolocation data for: ${cacheKey}`);
-
         // Cache successful response
         geoCache[cacheKey] = {
           data: response.data,
