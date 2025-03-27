@@ -165,6 +165,11 @@ app.post("/calculate_metrics", async (req, res) => {
       }
     } catch (error) {
       console.error(`Error Occured!\n`, error);
+
+      if (err.message.includes("Bad Request to Vertex AI")) {
+        return res.status(400).json({ error: err.message });
+      }
+      
       processedData[conversationId] = {
         ...metrics,
         server_ip: conv.server_ip,

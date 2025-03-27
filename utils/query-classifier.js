@@ -35,6 +35,9 @@ async function classifyQueryBatch(queries) {
 
     return predictions;
   } catch (error) {
+    if (error.response && error.response.status === 400) {
+      throw new Error("Bad Request to Vertex AI: Invalid data sent.");
+    }
     console.error("Error calling Vertex AI:", error);
     return queries.map(() => "unknown"); // Default category for failed requests
   }
