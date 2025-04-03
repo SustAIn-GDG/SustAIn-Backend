@@ -35,7 +35,12 @@ async function classifyQueryBatch(queries) {
 
     return predictions;
   } catch (error) {
-    console.error("Error calling Vertex AI:", error);
+    console.error(`Error Occurred: ${error.message}`);
+    if (error.stack) {
+      console.error(
+        `Stack Trace:\n${error.stack.split("\n").slice(0, 5).join("\n")}`
+      );
+    }
     return queries.map(() => "text generation"); // Default category for failed requests is text generation
   }
 }

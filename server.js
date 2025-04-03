@@ -164,7 +164,12 @@ app.post("/calculate_metrics", async (req, res) => {
           await predictSustainabilityMetrics(processedData[conversationId]));
       }
     } catch (error) {
-      console.error(`Error Occured!\n`, error);
+      console.error(`Error Occurred: ${error.message}`);
+      if (error.stack) {
+        console.error(
+          `Stack Trace:\n${error.stack.split("\n").slice(0, 5).join("\n")}`
+        );
+      }
     }
   }
   res.status(200).json({
