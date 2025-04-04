@@ -3,7 +3,7 @@ import { getValidAccessToken } from "../server.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-const VERTEX_AI_ENDPOINT = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.PROJECT_ID}/locations/us-central1/endpoints/${process.env.ENDPOINT_ID}:predict`;
+const VERTEX_AI_ENDPOINT = `https://sustain-ai-model.onrender.com/predict`;
 
 async function classifyQueryBatch(queries) {
   if (queries.length === 0) return [];
