@@ -6,7 +6,7 @@ let timeZoneCache = {};
 const TIME_API_ENDPOINT = "https://timeapi.io/api/time/current/zone";
 const CACHE_DURATION = 3600000; // 1 hour in milliseconds
 
-const getTimeData = async (timeZone, retryCount = 3, retryDelay = 1000) => {
+const getTimeData = async (timeZone, retryCount = 1, retryDelay = 1000) => {
   const cacheKey = timeZone;
 
   // Return cached data if available and not expired

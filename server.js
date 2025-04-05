@@ -73,8 +73,8 @@ app.get("/test", (req, res) => {
     "conv123": {
       "server_ip": "192.168.1.10",
       "queries": [
-        { "query": "Hello, how are you?", "model": "GPT-4" },
-        { "query": "What's the weather today?", "model": "GPT-4" }
+        { "query": "Hello, how are you?", "model": "GPT-4", time: duration },
+        { "query": "What's the weather today?", "model": "GPT-4", time: duration }
       ]
     }
   }

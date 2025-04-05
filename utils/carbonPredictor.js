@@ -7,8 +7,8 @@ let localMemory = {};
 const CARBON_API_ENDPOINT =
   "https://api.electricitymap.org/v3/carbon-intensity/latest";
 const CACHE_DURATION = 3600000; // 1 hour in milliseconds
-const DEFAULT_TIMEOUT = 8000; // 8 seconds timeout
-const MAX_RETRIES = 3;
+const DEFAULT_TIMEOUT = 3000; // 3 seconds timeout
+const MAX_RETRIES = 2;
 const RETRY_DELAY = 1500; // 1.5 seconds between retries
 
 const predictCarbon = async (

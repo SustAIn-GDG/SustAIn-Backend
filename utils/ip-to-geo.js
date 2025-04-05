@@ -5,8 +5,8 @@ let geoCache = {};
 
 const GEO_API_ENDPOINT = "http://ip-api.com/json";
 const CACHE_DURATION = 3600000; // 1 hour in milliseconds
-const DEFAULT_TIMEOUT = 5000; // 5 seconds
-const MAX_RETRIES = 3;
+const DEFAULT_TIMEOUT = 3000; // 3 seconds
+const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000; // 1 second
 
 const getGeoLocation = async (
