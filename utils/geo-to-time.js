@@ -57,7 +57,7 @@ const getTimeData = async (timeZone, retryCount = 1, retryDelay = 5000) => {
         } else if (error.code === "ETIMEDOUT") {
           console.error("Network error: Connection timed out");
         } else {
-          console.error("Unidentified error: ", error);
+          console.error("Unidentified error: ", errorMessage);
         }
 
         return getFallbackTimeData(timeZone);
