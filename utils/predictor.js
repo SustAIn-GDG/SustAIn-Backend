@@ -10,7 +10,10 @@ function getPUE(season, partOfDay) {
   return partOfDay === "Afternoon" ? 1.4 : 1.1;
 }
 
-export default async function predictSustainabilityMetrics(data) {
+export default async function predictSustainabilityMetrics(
+  data,
+  scaledDurationFactor
+) {
   let totalEnergyUsed = 0;
 
   for (const [queryType, count] of Object.entries(data.query_types)) {
@@ -20,14 +23,12 @@ export default async function predictSustainabilityMetrics(data) {
     }
   }
 
-  const gridEmissionFactor = await predictCarbon(
-    data.lon,
-    data.lat
-  );
+  const gridEmissionFactor = await predictCarbon(data.lon, data.lat);
 
   const PUE = getPUE(data.datacenter_season, data.datacenter_partOfDay, false);
 
-  const actualEnergyUsage = totalEnergyUsed * PUE;
+  console.log("Scaling factor based on time:", scaledDurationFactor);
+  const actualEnergyUsage = totalEnergyUsed * scaledDurationFactor * PUE;
   const carbonEmission =
     gridEmissionFactor == null
       ? (actualEnergyUsage * 450) / 1000

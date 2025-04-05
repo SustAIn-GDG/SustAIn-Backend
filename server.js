@@ -11,6 +11,7 @@ import { GoogleAuth } from "google-auth-library";
 import predictSustainabilityMetrics from "./utils/predictor.js";
 import { getGeoLocation } from "./utils/ip-to-geo.js";
 import { getTimeData } from "./utils/geo-to-time.js";
+import AdaptiveDurationBaselineEstimator from "./utils/durationBaselineEstimator.js";
 dotenv.config();
 
 const app = express();
@@ -41,7 +42,7 @@ app.use(cors(corsOptions));
 // };
 
 const auth = new GoogleAuth({
-  keyFilename: "/etc/secrets/GCP_Key.json",
+  keyFilename: "./etc/secrets/GCP_Key.json",
   scopes: ["https://www.googleapis.com/auth/cloud-platform"],
 });
 
@@ -66,6 +67,8 @@ export async function getValidAccessToken() {
 app.get("/test", (req, res) => {
   res.status(200).json({ MSG: "Server is runnning :)" });
 });
+
+const durationBaseLine = new AdaptiveDurationBaselineEstimator(10);
 
 /*
   Conversation data structure in storageAPI.
@@ -120,6 +123,29 @@ app.post("/calculate_metrics", async (req, res) => {
 
       const queries = conv.queries.map(({ query }) => query).filter(Boolean);
 
+      console.log(
+        "Baseline for duration before updation",
+        durationBaseLine.getAverage()
+      );
+      const durations = conv.queries.map(({ time }) => time).filter(Boolean);
+      for (const duration of durations) {
+        durationBaseLine.update(duration);
+      }
+
+      const meanDuration =
+        durations.reduce((sum, d) => sum + d, 0) / durations.length;
+      console.log(
+        "Baseline for duration after updation",
+        durationBaseLine.getAverage()
+      );
+      let scaledDurationFactor = meanDuration / durationBaseLine.getAverage();
+      scaledDurationFactor =
+        scaledDurationFactor >= 1
+          ? scaledDurationFactor < 10
+            ? meanDuration / durationBaseLine.getAverage()
+            : 10
+          : 0.8;
+
       // Run classifyQueryBatch and getGeoLocation in parallel
       const [categories, geoResponse] = await Promise.all([
         classifyQueryBatch(queries),
@@ -162,7 +188,10 @@ app.post("/calculate_metrics", async (req, res) => {
       // Predicting the energy, carbon and water usage
       for (const conversationId in processedData) {
         ({ EnergyConsumption, WaterConsumption, CarbonEmission } =
-          await predictSustainabilityMetrics(processedData[conversationId]));
+          await predictSustainabilityMetrics(
+            processedData[conversationId],
+            scaledDurationFactor
+          ));
       }
     } catch (error) {
       console.error(`Error Occurred: ${error.message}`);

@@ -6,7 +6,7 @@ let timeZoneCache = {};
 const TIME_API_ENDPOINT = "https://timeapi.io/api/time/current/zone";
 const CACHE_DURATION = 3600000; // 1 hour in milliseconds
 
-const getTimeData = async (timeZone, retryCount = 1, retryDelay = 1000) => {
+const getTimeData = async (timeZone, retryCount = 1, retryDelay = 3000) => {
   const cacheKey = timeZone;
 
   // Return cached data if available and not expired
@@ -21,7 +21,7 @@ const getTimeData = async (timeZone, retryCount = 1, retryDelay = 1000) => {
   // Configure request with timeout and proper error handling
   const config = {
     params: { timeZone },
-    timeout: 5000, // 5 second timeout
+    timeout: 10000, // 10 second timeout
   };
 
   // Implement retry logic
@@ -56,13 +56,18 @@ const getTimeData = async (timeZone, retryCount = 1, retryDelay = 1000) => {
           console.error("Network error: Host not found");
         } else if (error.code === "ETIMEDOUT") {
           console.error("Network error: Connection timed out");
+        } else {
+          console.error("Unidentified error: ", error);
         }
 
         return getFallbackTimeData(timeZone);
       }
 
-      // Wait before retrying
-      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      if (attempt < retryCount) {
+        const delay = retryDelay * Math.pow(2, attempt);
+        console.log(`Waiting ${delay}ms before retry attempt ${attempt + 1} for ${timeZone}`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
     }
   }
 };
