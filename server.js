@@ -42,7 +42,7 @@ app.use(cors(corsOptions));
 // };
 
 const auth = new GoogleAuth({
-  keyFilename: "./etc/secrets/GCP_Key.json",
+  keyFilename: "/etc/secrets/GCP_Key.json",
   scopes: ["https://www.googleapis.com/auth/cloud-platform"],
 });
 
