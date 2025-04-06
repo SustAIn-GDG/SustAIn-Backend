@@ -154,7 +154,6 @@ const predictCarbon = async (longitude, latitude) => {
 - CORS is enforced to protect access
 - No personally identifiable data is handled or logged
 
----
 
 ## 🧼 Cleanup Utilities
 
@@ -165,9 +164,15 @@ clearCarbonCache("80.2274,13.0827"); // specific location
 clearCarbonCache(); // entire cache
 ```
 
----
 
 ## 🧑‍💻 Maintainers
 
 Created and maintained by the SustAIn team.  
 Please reach out via issues or email for bugs, suggestions, or integrations.
+
+
+## 📜 License
+© 2025 Team SustAIn. All rights reserved.
+
+This project and its source code are the intellectual property of Team SustAIn.  
+Unauthorized copying, distribution, modification, or usage in any form is strictly prohibited.
